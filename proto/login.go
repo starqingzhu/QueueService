@@ -1,35 +1,26 @@
 package proto
 
 import (
-	"QueueService/define"
 	"bytes"
 	"encoding/binary"
 	"unsafe"
 )
 
-//登录状态
-const (
-	STATUS_LOGIN_FAIL    = 0
-	STATUS_LOGIN_SUCCESS = 1
-	STATUS_LOGIN_ING     = 2 //登录中
-)
-
 type (
 	LoginReq struct {
-		define.ProtoHeader
+		ProtoHeader
 		LoginReqBody
 	}
 
 	LoginRes struct {
-		define.ProtoHeader
+		ProtoHeader
 		LoginResBody
 	}
 
 	LoginNotify struct {
-		define.ProtoHeader
+		ProtoHeader
 		LoginNotifyBody
 	}
-
 
 	LoginReqBody struct {
 		UserName string
@@ -48,7 +39,7 @@ type (
 	}
 )
 
-func NewLoginReq(cmdNo int64, version string, userName string) (*LoginReq) {
+func NewLoginReq(cmdNo int64, version string, userName string) *LoginReq {
 	info := &LoginReq{}
 	info.CmdNo = cmdNo
 	info.Version = version
@@ -61,27 +52,7 @@ func NewLoginReq(cmdNo int64, version string, userName string) (*LoginReq) {
 	return info
 }
 
-func ParseToReqHead(res []byte) (*define.ProtoHeader) {
-	info := &define.ProtoHeader{}
-
-	cmdNoTypeLen := int(unsafe.Sizeof(info.CmdNo))
-	info.CmdNo = int64(binary.BigEndian.Uint64(res[:cmdNoTypeLen]))
-
-	curLen := cmdNoTypeLen
-	headerTypeLen := int(unsafe.Sizeof(info.HeaderLen))
-	info.HeaderLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+headerTypeLen]))
-
-	curLen += headerTypeLen
-	bodyTypeLen := int(unsafe.Sizeof(info.BodyLen))
-	info.BodyLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+bodyTypeLen]))
-
-	curLen += bodyTypeLen
-	info.Version = string(res[curLen:info.HeaderLen])
-
-	return info
-}
-
-func ParseToLoginReq(res []byte) (*LoginReq) {
+func ParseToLoginReq(res []byte) *LoginReq {
 	info := &LoginReq{}
 
 	cmdNoTypeLen := int(unsafe.Sizeof(info.CmdNo))
@@ -119,7 +90,7 @@ func (info *LoginReq) ToBytes() []byte {
 	return resBuf.Bytes()
 }
 
-func NewLoginRes(cmdNo int64, version string, userName string, status uint16) (*LoginRes) {
+func NewLoginRes(cmdNo int64, version string, userName string, status uint16) *LoginRes {
 	info := &LoginRes{}
 	info.CmdNo = cmdNo
 	info.Version = version
@@ -133,7 +104,7 @@ func NewLoginRes(cmdNo int64, version string, userName string, status uint16) (*
 	return info
 }
 
-func ParseToLoginRes(res []byte) (*LoginRes) {
+func ParseToLoginRes(res []byte) *LoginRes {
 	info := &LoginRes{}
 
 	cmdNoTypeLen := int(unsafe.Sizeof(info.CmdNo))
@@ -174,14 +145,13 @@ func (info *LoginRes) ToBytes() []byte {
 	return resBuf.Bytes()
 }
 
-func NewLoginNotify(cmdNo int64, version string, userName string, token string) (*LoginNotify) {
+func NewLoginNotify(cmdNo int64, version string, userName string, token string) *LoginNotify {
 	//包体
 	bodyInfo := LoginNotifyBody{}
 	bodyInfo.UserNameLen = uint16(len(userName))
 	bodyInfo.UserName = userName
 	bodyInfo.TokenLen = uint16(len(token))
 	bodyInfo.Token = token
-
 
 	//整个包
 	info := &LoginNotify{}
@@ -194,12 +164,11 @@ func NewLoginNotify(cmdNo int64, version string, userName string, token string) 
 	return info
 }
 
-func ParseToLoginNotify(notify []byte) (*LoginNotify) {
+func ParseToLoginNotify(notify []byte) *LoginNotify {
 
 	infoHead := ParseToReqHead(notify)
 	info := &LoginNotify{}
 	info.ProtoHeader = *infoHead
-
 
 	curLen := info.HeaderLen
 	userNameTypeLen := int32(unsafe.Sizeof(info.UserNameLen))
@@ -217,7 +186,6 @@ func ParseToLoginNotify(notify []byte) (*LoginNotify) {
 
 	curLen = endLen
 	info.Token = string(notify[curLen:])
-
 
 	//log.Printf("ParseToLoginNotify %+v\n", info)
 

@@ -1,5 +1,12 @@
 package define
 
+//登录状态
+const (
+	STATUS_LOGIN_FAIL    = 0
+	STATUS_LOGIN_SUCCESS = 1
+	STATUS_LOGIN_ING     = 2 //登录中
+)
+
 const (
 	LOGIN_QUEUE_MAX_LEN      = 10000 //todo 之后走配置文件
 	LOGIN_QUEUE_QUIT_MAX_LEN = 100   //todo 之后走配置文件
@@ -11,8 +18,8 @@ const (
 
 //等待队列玩家变动标示
 const (
-	QUE_CHANGE_REASON_PLAYER_ENTER = 1 //进入
-	QUE_CHANGE_REASON_PLAYER_LEAVE = 2 //离开
+	QUE_CHANGE_REASON_PLAYER_ENTER  = 1 //进入
+	QUE_CHANGE_REASON_PLAYER_LEAVE  = 2 //离开
 	QUE_CHANGE_REASON_PLAYER_GAMING = 3 //开始游戏
 )
 
@@ -30,8 +37,8 @@ type (
 	}
 
 	ChangeInfo struct {
-		QueWaitPlayersNum     int32  //排队人数
-		PlayersGameIngNum     int32  //玩游戏人数
+		QueWaitPlayersNum int32 //排队人数
+		PlayersGameIngNum int32 //玩游戏人数
 		//QuePlayerPos          int32  //在队列中位置
 		UserName              string //用户名
 		QuePlayerChangeReason uint16 //队列变动原因

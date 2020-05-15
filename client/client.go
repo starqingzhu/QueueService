@@ -33,13 +33,13 @@ func main() {
 	}
 
 	userName := "sunbin"
-	loginInfo :=  proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, define.PROTO_VERSION,userName)
+	loginInfo := proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, define.PROTO_VERSION, userName)
 
 	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
 
 	loginInfoBuf := &bytes.Buffer{}
 
-	binary.Write(loginInfoBuf,binary.BigEndian,loginInfo.ToBytes())
+	binary.Write(loginInfoBuf, binary.BigEndian, loginInfo.ToBytes())
 	err = fc.WriteFrame(loginInfoBuf.Bytes())
 	if err != nil {
 		panic(err)

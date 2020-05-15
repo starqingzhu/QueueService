@@ -41,7 +41,7 @@ func (cs *codecServer) OnOpened(c gnet.Conn) (out []byte, action gnet.Action) {
 func (cs *codecServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		log.Printf("client %s disconnect err: %v)\n", c.RemoteAddr().String(), err)
-	}else {
+	} else {
 		log.Printf("client %s disconnect)\n", c.RemoteAddr().String())
 	}
 	connManager.ConnManager.Delete(c.RemoteAddr().String())
@@ -72,7 +72,7 @@ func HandleReqInfoParse(frame []byte, c gnet.Conn) (res []byte) {
 	switch info.CmdNo {
 	case define.CMD_LOGIN_REQ_NO:
 		loginReqInfo := proto.ParseToLoginReq(frame)
-		loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, proto.STATUS_LOGIN_ING)
+		loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
 		res = loginResInfo.ToBytes()
 		clientInfo := &define.ClientInfo{
 			UserName: loginReqInfo.UserName,

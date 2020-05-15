@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func run(userName string,wg *sync.WaitGroup){
+func run(userName string, wg *sync.WaitGroup) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("recover err: %v ,userName: %s---->>>>\n", err, userName)
@@ -42,13 +42,13 @@ func run(userName string,wg *sync.WaitGroup){
 	}
 
 	packVer := "v1.0.0"
-	loginInfo :=  proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, packVer,userName)
+	loginInfo := proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, packVer, userName)
 
 	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
 
 	loginInfoBuf := &bytes.Buffer{}
 
-	binary.Write(loginInfoBuf,binary.BigEndian,loginInfo.ToBytes())
+	binary.Write(loginInfoBuf, binary.BigEndian, loginInfo.ToBytes())
 	err = fc.WriteFrame(loginInfoBuf.Bytes())
 	if err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func TestClient(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {
-		go run(strconv.Itoa(i),&wg)
+		go run(strconv.Itoa(i), &wg)
 	}
 	wg.Wait()
 }
