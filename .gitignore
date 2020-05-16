@@ -1,0 +1,4 @@
+.idea/*
+server/server
+client/client
+bin/*
