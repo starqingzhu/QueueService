@@ -5,6 +5,7 @@ import (
 	"QueueService/proto"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/smallnest/goframe"
 	"net"
 )
@@ -50,24 +51,48 @@ func main() {
 		panic(err)
 	}
 
-	////解析login回复
-	//buf, err := fc.ReadFrame()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//printProtoInfo(buf)
-	//
-	////读取两次，一次异步通知、一次位置查询
-	//notifyBuf, err := fc.ReadFrame()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//printProtoInfo(notifyBuf)
-	//
-	//notifyBuf, err = fc.ReadFrame()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//printProtoInfo(notifyBuf)
+	//解析login回复
+	buf, err := fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	printProtoInfo(buf)
 
+	//读取两次，一次异步通知、一次位置查询
+	notifyBuf, err := fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	printProtoInfo(notifyBuf)
+
+	notifyBuf, err = fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	printProtoInfo(notifyBuf)
+
+}
+
+func printProtoInfo(info []byte) {
+	headInfo := proto.ParseToReqHead(info)
+	switch headInfo.CmdNo {
+	case define.CMD_LOGIN_RES_NO:
+		resp := proto.ParseToLoginRes(info)
+		fmt.Printf("received login res: %+v\n", resp)
+
+	case define.CMD_LOGIN_NOTIFY_NO:
+		notify := proto.ParseToLoginNotify(info)
+		fmt.Printf("received login notify: %+v\n", notify)
+
+	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO:
+		resp := proto.ParseToQueryPlayerLoginQuePosRes(info)
+		fmt.Printf("received query res: %+v\n", resp)
+
+	case define.CMD_LOGIN_QUIT_RSP_NO:
+		resp := proto.ParseToQuitLoginQueRes(info)
+		fmt.Printf("received quit res: %+v\n", resp)
+
+	default:
+
+	}
 }

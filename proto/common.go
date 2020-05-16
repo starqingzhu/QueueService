@@ -13,6 +13,11 @@ type (
 		BodyLen   int32
 		Version   string //固定长度
 	}
+	ProtoLen struct {
+		CmdNo     int64
+		HeaderLen int32
+		BodyLen   int32
+	}
 )
 
 func NewReqHead(cmdNo int64, version string, bodyLen int32) *ProtoHeader {
@@ -23,6 +28,41 @@ func NewReqHead(cmdNo int64, version string, bodyLen int32) *ProtoHeader {
 	info.BodyLen = bodyLen
 
 	return info
+}
+
+/*
+解析协议头 ，【】byte长度 最低是多少。
+*/
+func MinProtoLen() int {
+	protoHead := &ProtoHeader{}
+	return int(unsafe.Sizeof(protoHead.CmdNo)) + int(unsafe.Sizeof(protoHead.HeaderLen)) + int(unsafe.Sizeof(protoHead.BodyLen))
+}
+
+/*
+解析[]byte数组到协议头的 包头长度和包体长度
+*/
+func ParseToProtoLen(req []byte) (info *ProtoLen) {
+
+	protoHead := &ProtoHeader{}
+	info = &ProtoLen{}
+
+	cmdNoTypeLen := int(unsafe.Sizeof(protoHead.CmdNo))
+	info.CmdNo = int64(binary.BigEndian.Uint64(req[:cmdNoTypeLen]))
+
+	curLen := cmdNoTypeLen
+
+	headerTypeLen := int(unsafe.Sizeof(protoHead.HeaderLen))
+	endLen := curLen + headerTypeLen
+
+	info.HeaderLen = int32(binary.BigEndian.Uint32(req[curLen:endLen]))
+
+	curLen = endLen
+	bodyTypeLen := int(unsafe.Sizeof(protoHead.BodyLen))
+	endLen = curLen + bodyTypeLen
+
+	info.BodyLen = int32(binary.BigEndian.Uint32(req[curLen : curLen+bodyTypeLen]))
+
+	return
 }
 
 func ParseToReqHead(res []byte) *ProtoHeader {

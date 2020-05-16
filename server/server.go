@@ -5,15 +5,15 @@ import (
 	"QueueService/define"
 	"QueueService/proto"
 	"QueueService/queue"
+	"bytes"
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"github.com/panjf2000/gnet"
+	"github.com/panjf2000/gnet/pool/goroutine"
 	"log"
 	"runtime"
 	"time"
-
-	"github.com/panjf2000/gnet"
-	"github.com/panjf2000/gnet/pool/goroutine"
 )
 
 type codecServer struct {
@@ -54,14 +54,23 @@ func (cs *codecServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 
 func (cs *codecServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Action) {
 
-	infoBytes := HandleReqInfoParse(frame, c)
-	if cs.async && (len(infoBytes) > 0) {
-		data := append([]byte{}, infoBytes...)
-		_ = cs.workerPool.Submit(func() {
-			c.AsyncWrite(data)
-		})
+	value, ok := connManager.ConnManager.Load(c.RemoteAddr().String())
+	if !ok {
 		return
 	}
+	connInfo, ok := value.(*define.ConnInfo)
+	if !ok {
+		return
+	}
+
+	HandleReqInfoParse(frame, connInfo)
+	//if cs.async {
+	//	data := append([]byte{}, []byte{}...)
+	//	_ = cs.workerPool.Submit(func() {
+	//		c.AsyncWrite(data)
+	//	})
+	//	return
+	//}
 	//out = loginResInfo.ToBytes()
 	return
 }
@@ -70,40 +79,82 @@ func (cs *codecServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet
 解析各种协议
 先解析协议头、根据协议头确定协议，然后解析协议体
 */
-func HandleReqInfoParse(frame []byte, c gnet.Conn) (res []byte) {
-	info := proto.ParseToReqHead(frame)
-	switch info.CmdNo {
-	case define.CMD_LOGIN_REQ_NO:
-		loginReqInfo := proto.ParseToLoginReq(frame)
-		loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
-		res = loginResInfo.ToBytes()
-		clientInfo := &define.ClientInfo{
-			UserName: loginReqInfo.UserName,
-			ConnAddr: c.RemoteAddr().String(),
+func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
+	frameBuff := bytes.NewBuffer(frame) //Next
+	for frameBuff.Len() > 0 || connInfo.Buff.Free() > 0 {
+		if connInfo.Buff.Free() >= frameBuff.Len() {
+			if _, err := connInfo.Buff.Write(frameBuff.Next(frameBuff.Len())); err != nil {
+				log.Printf("HandleReqInfoParse Write err: %v \n", err)
+				return err
+			}
+		} else {
+			if _, err := connInfo.Buff.Write(frameBuff.Next(connInfo.Buff.Free())); err != nil {
+				log.Printf("HandleReqInfoParse Write err: %v \n", err)
+				return err
+			}
 		}
 
-		queue.EnqueueChan <- *clientInfo
-
-	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO:
-		queryReqInfo := proto.ParseToQueryPlayerLoginQuePosReq(frame)
-		clientInfo := &define.ClientInfo{
-			UserName: queryReqInfo.UserName,
-			ConnAddr: c.RemoteAddr().String(),
+		//如果连接缓存中连最低协议字符长度都没有，直接返回
+		minProtoLen := proto.MinProtoLen()
+		if minProtoLen >= connInfo.Buff.Length() {
+			return nil
 		}
-		queue.QueryqueueChan <- *clientInfo
 
-	case define.CMD_LOGIN_QUIT_REQ_NO:
-		quitReqInfo := proto.ParseToQuitLoginQueReq(frame)
-		clientInfo := &define.ClientInfo{
-			UserName: quitReqInfo.UserName,
-			ConnAddr: c.RemoteAddr().String(),
+		head, tail := connInfo.Buff.LazyRead(minProtoLen)
+		head = append(head, tail...)
+		log.Printf("minProtoLen: %d bufflen: %d headLen: %d tailLen: %d\n", minProtoLen, connInfo.Buff.Length(), len(head), len(tail))
+
+		lenInfo := proto.ParseToProtoLen(head)
+
+		protoLen := int(lenInfo.HeaderLen + lenInfo.BodyLen)
+		if protoLen > connInfo.Buff.Length() {
+			return nil
 		}
-		queue.QuitQueueChan <- *clientInfo
 
-	default:
+		head, tail = connInfo.Buff.LazyRead(protoLen)
+		head = append(head, tail...)
+		connInfo.Buff.Shift(protoLen)
+
+		switch lenInfo.CmdNo {
+		case define.CMD_LOGIN_REQ_NO:
+			loginReqInfo := proto.ParseToLoginReq(frame)
+			loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
+
+			if err := (*connInfo.Conn).AsyncWrite(loginResInfo.ToBytes()); err != nil {
+				log.Printf("sendto %s content %v ,err: %v\n", (*connInfo.Conn).RemoteAddr().String(), loginResInfo, err)
+			}
+
+			clientInfo := &define.ClientInfo{
+				UserName: loginReqInfo.UserName,
+				ConnAddr: (*connInfo.Conn).RemoteAddr().String(),
+			}
+
+			queue.EnqueueChan <- *clientInfo
+
+		case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO:
+			queryReqInfo := proto.ParseToQueryPlayerLoginQuePosReq(frame)
+			clientInfo := &define.ClientInfo{
+				UserName: queryReqInfo.UserName,
+				ConnAddr: (*connInfo.Conn).RemoteAddr().String(),
+			}
+			queue.QueryqueueChan <- *clientInfo
+
+		case define.CMD_LOGIN_QUIT_REQ_NO:
+			quitReqInfo := proto.ParseToQuitLoginQueReq(frame)
+			clientInfo := &define.ClientInfo{
+				UserName: quitReqInfo.UserName,
+				ConnAddr: (*connInfo.Conn).RemoteAddr().String(),
+			}
+			queue.QuitQueueChan <- *clientInfo
+
+		default:
+			log.Printf("system can not support cmd %v\n", lenInfo)
+		}
 
 	}
-	return
+
+	return nil
+
 }
 
 func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {

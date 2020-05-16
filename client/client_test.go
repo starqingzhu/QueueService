@@ -57,7 +57,7 @@ func run(userName string, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(err)
 	}
-	printProtoInfo(buf)
+	PrintProtoInfo(buf)
 
 	//查询位置
 	queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
@@ -86,23 +86,33 @@ func run(userName string, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(err)
 	}
-	printProtoInfo(notifyBuf)
+	PrintProtoInfo(notifyBuf)
 
 	notifyBuf, err = fc.ReadFrame()
 	if err != nil {
 		panic(err)
 	}
-	printProtoInfo(notifyBuf)
+	PrintProtoInfo(notifyBuf)
 
 	//notifyBuf, err = fc.ReadFrame()
 	//if err != nil {
 	//	panic(err)
 	//}
-	//printProtoInfo(notifyBuf)
+	//PrintProtoInfo(notifyBuf)
 
 }
 
-func printProtoInfo(info []byte) {
+func TestClient(t *testing.T) {
+	var goNum int = 1
+	var wg sync.WaitGroup
+	wg.Add(goNum)
+	for i := 1; i <= goNum; i++ {
+		go run(strconv.Itoa(i), &wg)
+	}
+	wg.Wait()
+}
+
+func PrintProtoInfo(info []byte) {
 	headInfo := proto.ParseToReqHead(info)
 	switch headInfo.CmdNo {
 	case define.CMD_LOGIN_RES_NO:
@@ -124,14 +134,4 @@ func printProtoInfo(info []byte) {
 	default:
 
 	}
-}
-
-func TestClient(t *testing.T) {
-	var goNum int = 1
-	var wg sync.WaitGroup
-	wg.Add(goNum)
-	for i := 1; i <= goNum; i++ {
-		go run(strconv.Itoa(i), &wg)
-	}
-	wg.Wait()
 }
