@@ -41,13 +41,11 @@ func run(userName string, wg *sync.WaitGroup) {
 		InitialBytesToStrip: 4,
 	}
 
-	packVer := "v1.0.0"
-	loginInfo := proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, packVer, userName)
+	loginInfo := proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, define.PROTO_VERSION, userName)
 
 	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
 
 	loginInfoBuf := &bytes.Buffer{}
-
 	binary.Write(loginInfoBuf, binary.BigEndian, loginInfo.ToBytes())
 	err = fc.WriteFrame(loginInfoBuf.Bytes())
 	if err != nil {
@@ -59,19 +57,56 @@ func run(userName string, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(err)
 	}
-	resp := proto.ParseToLoginRes(buf)
-	fmt.Printf("received res: %+v\n", resp)
-	//login notify
+	printProtoInfo(buf)
+
+	//查询位置
+	queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
+		define.PROTO_VERSION,
+		userName)
+	queryInfoBuf := &bytes.Buffer{}
+	binary.Write(queryInfoBuf, binary.BigEndian, queryInfo.ToBytes())
+	err = fc.WriteFrame(queryInfoBuf.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	//读取两次，一次异步通知、一次位置查询
 	notifyBuf, err := fc.ReadFrame()
 	if err != nil {
 		panic(err)
 	}
-	notify := proto.ParseToLoginNotify(notifyBuf)
-	fmt.Printf("received notify: %+v\n", notify)
+	printProtoInfo(notifyBuf)
+
+	notifyBuf, err = fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	printProtoInfo(notifyBuf)
+
+}
+
+func printProtoInfo(info []byte) {
+	headInfo := proto.ParseToReqHead(info)
+	switch headInfo.CmdNo {
+	case define.CMD_LOGIN_RES_NO:
+		resp := proto.ParseToLoginRes(info)
+		fmt.Printf("received res: %+v\n", resp)
+
+	case define.CMD_LOGIN_NOTIFY_NO:
+		notify := proto.ParseToLoginNotify(info)
+		fmt.Printf("received notify: %+v\n", notify)
+
+	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO:
+		resp := proto.ParseToQueryPlayerLoginQuePosRes(info)
+		fmt.Printf("received res: %+v\n", resp)
+
+	default:
+
+	}
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 280
+	var goNum int = 10
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {

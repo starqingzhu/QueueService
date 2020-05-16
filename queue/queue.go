@@ -14,6 +14,7 @@ import (
 
 var (
 	EnqueueChan    chan define.ClientInfo // 进入排队时发送
+	QueryqueueChan chan define.ClientInfo // 查询玩家排队位置时发送
 	QuitQueueChan  chan string            // 退出排队时发送(用户主动行为)
 	QuitGameChan   chan string            //  退出游戏时发送
 	ChangeInfoChan chan define.ChangeInfo // 在线人数变化时发送
@@ -29,6 +30,7 @@ var (
 
 func Init() {
 	EnqueueChan = make(chan define.ClientInfo, define.LOGIN_QUEUE_MAX_LEN)
+	QueryqueueChan = make(chan define.ClientInfo, define.QUERY_LOGIN_QUEUE_MAX_LEN)
 	QuitQueueChan = make(chan string, define.LOGIN_QUEUE_QUIT_MAX_LEN)
 	QuitGameChan = make(chan string, define.LOGIN_GAME_QUIT_MAX_LEN)
 	ChangeInfoChan = make(chan define.ChangeInfo, define.LOGIN_QUEUE_MAX_LEN)
@@ -40,9 +42,13 @@ func OperateWaitList() {
 	log.Printf("OperateWaitList enter------>>>>>>")
 	for {
 		select {
-		// 有用户登陆
+		// 有玩家登陆
 		case clientInfo := <-EnqueueChan:
 			Enqueue(&clientInfo)
+
+		//玩家查询在等待队列位置
+		case clientInfo := <-QueryqueueChan:
+			handleQuery(&clientInfo)
 			//// 有用户退出排队
 			//case userName := <-QuitQueueChan:
 			//	QuitQueue(userName)
@@ -155,6 +161,20 @@ func HandleLogin() {
 		}
 
 		time.Sleep(define.LOGIN_HANDLE_WAIT_TIME * time.Millisecond)
+	}
+}
+
+func handleQuery(clientInfo *define.ClientInfo) {
+	c, exist := connManager.ConnManager.Load(clientInfo.ConnAddr)
+	if exist {
+		playerQueInfo := GetPlayerPosInfo(clientInfo.UserName)
+		queryRes := proto.NewQueryPlayerLoginQuePosRes(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO,
+			define.PROTO_VERSION,
+			playerQueInfo.QueWaitPlayersNum,
+			playerQueInfo.PlayersGameIngNum,
+			playerQueInfo.QuePlayerPos)
+
+		c.(gnet.Conn).AsyncWrite(queryRes.ToBytes())
 	}
 }
 

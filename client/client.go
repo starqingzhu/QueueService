@@ -45,13 +45,19 @@ func main() {
 		panic(err)
 	}
 
+	//解析login回复
 	buf, err := fc.ReadFrame()
 	if err != nil {
 		panic(err)
 	}
-
 	resp := proto.ParseToLoginRes(buf)
-
-	fmt.Printf("received: %+v\n", resp)
+	fmt.Printf("received res: %+v\n", resp)
+	//login notify
+	notifyBuf, err := fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	notify := proto.ParseToLoginNotify(notifyBuf)
+	fmt.Printf("received notify: %+v\n", notify)
 
 }

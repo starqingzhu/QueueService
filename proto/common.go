@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"bytes"
 	"encoding/binary"
 	"unsafe"
 )
@@ -13,6 +14,16 @@ type (
 		Version   string //固定长度
 	}
 )
+
+func NewReqHead(cmdNo int64, version string, bodyLen int32) *ProtoHeader {
+	info := &ProtoHeader{}
+	info.CmdNo = cmdNo
+	info.Version = version
+	info.HeaderLen = int32(unsafe.Sizeof(info.CmdNo)+unsafe.Sizeof(info.BodyLen)+unsafe.Sizeof(info.HeaderLen)) + int32(len(info.Version))
+	info.BodyLen = bodyLen
+
+	return info
+}
 
 func ParseToReqHead(res []byte) *ProtoHeader {
 	info := &ProtoHeader{}
@@ -32,4 +43,16 @@ func ParseToReqHead(res []byte) *ProtoHeader {
 	info.Version = string(res[curLen:info.HeaderLen])
 
 	return info
+}
+
+func (info *ProtoHeader) ToBytes() []byte {
+	resBuf := &bytes.Buffer{}
+	binary.Write(resBuf, binary.BigEndian, info.CmdNo)
+	binary.Write(resBuf, binary.BigEndian, info.HeaderLen)
+	binary.Write(resBuf, binary.BigEndian, info.BodyLen)
+	binary.Write(resBuf, binary.BigEndian, []byte(info.Version))
+
+	//log.Printf("ProtoHeader ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
+
+	return resBuf.Bytes()
 }

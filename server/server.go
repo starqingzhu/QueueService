@@ -52,7 +52,7 @@ func (cs *codecServer) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 func (cs *codecServer) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Action) {
 
 	infoBytes := HandleReqInfoParse(frame, c)
-	if cs.async {
+	if cs.async && (len(infoBytes) > 0) {
 		data := append([]byte{}, infoBytes...)
 		_ = cs.workerPool.Submit(func() {
 			c.AsyncWrite(data)
@@ -80,6 +80,14 @@ func HandleReqInfoParse(frame []byte, c gnet.Conn) (res []byte) {
 		}
 		//log.Printf("queue.EnqueueChan clientInfo:%+v\n", clientInfo)
 		queue.EnqueueChan <- *clientInfo
+
+	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO:
+		queryReqInfo := proto.ParseToQueryPlayerLoginQuePosReq(frame)
+		clientInfo := &define.ClientInfo{
+			UserName: queryReqInfo.UserName,
+			ConnAddr: c.RemoteAddr().String(),
+		}
+		queue.QueryqueueChan <- *clientInfo
 
 	case define.CMD_LOGIN_QUIT_REQ_NO:
 
