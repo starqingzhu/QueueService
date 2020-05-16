@@ -33,7 +33,10 @@ func (cs *codecServer) OnInitComplete(srv gnet.Server) (action gnet.Action) {
 
 func (cs *codecServer) OnOpened(c gnet.Conn) (out []byte, action gnet.Action) {
 	log.Printf("client %s connect)\n", c.RemoteAddr().String())
-	connManager.ConnManager.Store(c.RemoteAddr().String(), c)
+
+	connInfo := define.NewConnInfo(&c)
+
+	connManager.ConnManager.Store(c.RemoteAddr().String(), connInfo)
 
 	return
 }
@@ -78,7 +81,7 @@ func HandleReqInfoParse(frame []byte, c gnet.Conn) (res []byte) {
 			UserName: loginReqInfo.UserName,
 			ConnAddr: c.RemoteAddr().String(),
 		}
-		//log.Printf("queue.EnqueueChan clientInfo:%+v\n", clientInfo)
+
 		queue.EnqueueChan <- *clientInfo
 
 	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO:
@@ -90,6 +93,12 @@ func HandleReqInfoParse(frame []byte, c gnet.Conn) (res []byte) {
 		queue.QueryqueueChan <- *clientInfo
 
 	case define.CMD_LOGIN_QUIT_REQ_NO:
+		quitReqInfo := proto.ParseToQuitLoginQueReq(frame)
+		clientInfo := &define.ClientInfo{
+			UserName: quitReqInfo.UserName,
+			ConnAddr: c.RemoteAddr().String(),
+		}
+		queue.QuitQueueChan <- *clientInfo
 
 	default:
 
@@ -133,9 +142,7 @@ func main() {
 	runtime.GOMAXPROCS(2)
 	//初始化工作
 	queue.Init()
-	go queue.ListenChanges()
-	go queue.HandleLogin()
-	go queue.OperateWaitList()
+	queue.OperateWaitList()
 
 	addr := fmt.Sprintf("tcp://:%d", port)
 	codecServerRun(addr, multicore, true, nil)

@@ -70,6 +70,17 @@ func run(userName string, wg *sync.WaitGroup) {
 		panic(err)
 	}
 
+	//在登录之前退出队列
+	//quitInfo := proto.NewQuitLoginQueReq(define.CMD_LOGIN_QUIT_REQ_NO,
+	//	define.PROTO_VERSION,
+	//	userName)
+	//quitInfoBuf := &bytes.Buffer{}
+	//binary.Write(quitInfoBuf, binary.BigEndian, quitInfo.ToBytes())
+	//err = fc.WriteFrame(quitInfoBuf.Bytes())
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	//读取两次，一次异步通知、一次位置查询
 	notifyBuf, err := fc.ReadFrame()
 	if err != nil {
@@ -83,6 +94,12 @@ func run(userName string, wg *sync.WaitGroup) {
 	}
 	printProtoInfo(notifyBuf)
 
+	//notifyBuf, err = fc.ReadFrame()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//printProtoInfo(notifyBuf)
+
 }
 
 func printProtoInfo(info []byte) {
@@ -90,15 +107,19 @@ func printProtoInfo(info []byte) {
 	switch headInfo.CmdNo {
 	case define.CMD_LOGIN_RES_NO:
 		resp := proto.ParseToLoginRes(info)
-		fmt.Printf("received res: %+v\n", resp)
+		fmt.Printf("received login res: %+v\n", resp)
 
 	case define.CMD_LOGIN_NOTIFY_NO:
 		notify := proto.ParseToLoginNotify(info)
-		fmt.Printf("received notify: %+v\n", notify)
+		fmt.Printf("received login notify: %+v\n", notify)
 
 	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO:
 		resp := proto.ParseToQueryPlayerLoginQuePosRes(info)
-		fmt.Printf("received res: %+v\n", resp)
+		fmt.Printf("received query res: %+v\n", resp)
+
+	case define.CMD_LOGIN_QUIT_RSP_NO:
+		resp := proto.ParseToQuitLoginQueRes(info)
+		fmt.Printf("received quit res: %+v\n", resp)
 
 	default:
 
@@ -106,7 +127,7 @@ func printProtoInfo(info []byte) {
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 10
+	var goNum int = 1
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {

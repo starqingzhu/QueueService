@@ -5,7 +5,6 @@ import (
 	"QueueService/proto"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"github.com/smallnest/goframe"
 	"net"
 )
@@ -33,31 +32,42 @@ func main() {
 	}
 
 	userName := "sunbin"
+
 	loginInfo := proto.NewLoginReq(define.CMD_LOGIN_REQ_NO, define.PROTO_VERSION, userName)
 
 	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
 
 	loginInfoBuf := &bytes.Buffer{}
-
 	binary.Write(loginInfoBuf, binary.BigEndian, loginInfo.ToBytes())
+
+	//查询位置
+	queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
+		define.PROTO_VERSION,
+		userName)
+	binary.Write(loginInfoBuf, binary.BigEndian, queryInfo.ToBytes())
 	err = fc.WriteFrame(loginInfoBuf.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
-	//解析login回复
-	buf, err := fc.ReadFrame()
-	if err != nil {
-		panic(err)
-	}
-	resp := proto.ParseToLoginRes(buf)
-	fmt.Printf("received res: %+v\n", resp)
-	//login notify
-	notifyBuf, err := fc.ReadFrame()
-	if err != nil {
-		panic(err)
-	}
-	notify := proto.ParseToLoginNotify(notifyBuf)
-	fmt.Printf("received notify: %+v\n", notify)
+	////解析login回复
+	//buf, err := fc.ReadFrame()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//printProtoInfo(buf)
+	//
+	////读取两次，一次异步通知、一次位置查询
+	//notifyBuf, err := fc.ReadFrame()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//printProtoInfo(notifyBuf)
+	//
+	//notifyBuf, err = fc.ReadFrame()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//printProtoInfo(notifyBuf)
 
 }

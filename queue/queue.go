@@ -6,8 +6,8 @@ import (
 	"QueueService/proto"
 	"QueueService/utils"
 	"container/list"
-	"github.com/panjf2000/gnet"
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -15,59 +15,83 @@ import (
 var (
 	EnqueueChan    chan define.ClientInfo // 进入排队时发送
 	QueryqueueChan chan define.ClientInfo // 查询玩家排队位置时发送
-	QuitQueueChan  chan string            // 退出排队时发送(用户主动行为)
+	QuitQueueChan  chan define.ClientInfo // 退出排队时发送(用户主动行为)
 	QuitGameChan   chan string            //  退出游戏时发送
 	ChangeInfoChan chan define.ChangeInfo // 在线人数变化时发送
 
 )
 
 var (
-	WaitNumMap      map[string]int32 // 用户id和其当前排队位置的Map
-	WaitList        *list.List       // 正在排队中的用户
-	OnGamingPlayers int32            // 正在游戏中的人数
-	LoginWaitCurNum int32            //当前队列的自增序列值
+	WaitNumMap          sync.Map   // map[string]int32 // 用户id和其当前排队位置的Map
+	WaitList            *list.List // 正在排队中的玩家
+	OnWaitingQuePlayers int32      //正在排队中的玩家人数
+	OnGamingPlayers     int32      // 正在游戏中的人数
+	LoginWaitCurNum     int32      //当前队列的自增序列值
 )
 
 func Init() {
 	EnqueueChan = make(chan define.ClientInfo, define.LOGIN_QUEUE_MAX_LEN)
 	QueryqueueChan = make(chan define.ClientInfo, define.QUERY_LOGIN_QUEUE_MAX_LEN)
-	QuitQueueChan = make(chan string, define.LOGIN_QUEUE_QUIT_MAX_LEN)
+	QuitQueueChan = make(chan define.ClientInfo, define.LOGIN_QUEUE_QUIT_MAX_LEN)
 	QuitGameChan = make(chan string, define.LOGIN_GAME_QUIT_MAX_LEN)
 	ChangeInfoChan = make(chan define.ChangeInfo, define.LOGIN_QUEUE_MAX_LEN)
-	WaitNumMap = make(map[string]int32, define.LOGIN_QUEUE_MAX_LEN)
+	//WaitNumMap = make(map[string]int32, define.LOGIN_QUEUE_MAX_LEN)
 	WaitList = list.New()
 }
 
 func OperateWaitList() {
 	log.Printf("OperateWaitList enter------>>>>>>")
+
+	go ListenChanges()
+	go HandleLogin()
+
+	go HandleEnqueueChan()
+	go HandleQueryqueueChan()
+	go HandleQuitQueueChan()
+	//// 有用户退出游戏
+	//case <-QuitGameChan:
+	//	QuitGame()
+	//// 有用户退出，具体是退出排队还是游戏在Quit(）内进一步判断
+	//case userName := <-QuitChan:
+	//	Quit(userName)
+}
+
+// 有玩家登陆
+func HandleEnqueueChan() {
 	for {
 		select {
-		// 有玩家登陆
 		case clientInfo := <-EnqueueChan:
 			Enqueue(&clientInfo)
+		}
+	}
+}
 
-		//玩家查询在等待队列位置
+//玩家查询在等待队列位置
+func HandleQueryqueueChan() {
+	for {
+		select {
 		case clientInfo := <-QueryqueueChan:
 			handleQuery(&clientInfo)
-			//// 有用户退出排队
-			//case userName := <-QuitQueueChan:
-			//	QuitQueue(userName)
-			//// 有用户退出游戏
-			//case <-QuitGameChan:
-			//	QuitGame()
-			//// 有用户退出，具体是退出排队还是游戏在Quit(）内进一步判断
-			//case userName := <-QuitChan:
-			//	Quit(userName)
+		}
+	}
+}
+
+// 有用户退出排队
+func HandleQuitQueueChan() {
+	for {
+		select {
+		case clientInfo := <-QuitQueueChan:
+			QuitQueue(&clientInfo)
 		}
 	}
 }
 
 func GetPlayerPosInfo(userName string) (res *define.PlayerQueInfo) {
 	res = &define.PlayerQueInfo{}
-	res.QueWaitPlayersNum = int32(len(WaitNumMap))
-	absPos, ok := WaitNumMap[userName]
+	res.QueWaitPlayersNum = GetWaitingQuePlayersNum()
+	absPos, ok := WaitNumMap.Load(userName)
 	if ok {
-		res.QuePlayerPos = getPlayerRelativeIndex(absPos)
+		res.QuePlayerPos = getPlayerRelativeIndex(absPos.(int32))
 	}
 	res.PlayersGameIngNum = GetGamingPlayersNum()
 
@@ -83,20 +107,37 @@ func GetPlayerPosInfo(userName string) (res *define.PlayerQueInfo) {
 // 新用户登陆
 func Enqueue(clientInfo *define.ClientInfo) {
 	//log.Printf("Enqueue clientInfo:%v", clientInfo)
-	WaitNumMap[clientInfo.UserName] = IncrLoginCurNum()
-	WaitList.PushFront(*clientInfo)
+	if _, ok := WaitNumMap.Load(clientInfo.UserName); !ok {
+		WaitNumMap.Store(clientInfo.UserName, IncrLoginCurNum())
+		WaitList.PushFront(*clientInfo)
+		IncrWaitingQuePlayersNum()
 
-	playerPosInfo := GetPlayerPosInfo(clientInfo.UserName)
-	PrintWaitQueInfoChanged(playerPosInfo, define.QUE_CHANGE_REASON_PLAYER_ENTER)
+		playerPosInfo := GetPlayerPosInfo(clientInfo.UserName)
+		PrintWaitQueInfoChanged(playerPosInfo, define.QUE_CHANGE_REASON_PLAYER_ENTER)
+	}
+
 }
 
 // 用户退出排队
 // 从WaitList表删除此用户，原排队用户的等待位置不变
-func QuitQueue(userName string) {
-	log.Printf("QuitQueue %s", userName)
-	playerPosInfo := GetPlayerPosInfo(userName)
-	PrintWaitQueInfoChanged(playerPosInfo, define.QUE_CHANGE_REASON_PLAYER_LEAVE)
-	delete(WaitNumMap, userName)
+func QuitQueue(clientInfo *define.ClientInfo) {
+	c, exist := connManager.ConnManager.Load(clientInfo.ConnAddr)
+	if exist {
+		playerPosInfo := GetPlayerPosInfo(clientInfo.UserName)
+		quitRes := proto.NewQuitLoginQueRes(define.CMD_LOGIN_QUIT_RSP_NO,
+			define.PROTO_VERSION,
+			clientInfo.UserName,
+			define.STATUS_SUCCESS,
+		)
+		(*(c.(*define.ConnInfo).Conn)).AsyncWrite(quitRes.ToBytes())
+
+		if _, ok := WaitNumMap.Load(clientInfo.UserName); ok {
+			DecrWaitingQuePlayersNum()
+			WaitNumMap.Delete(clientInfo.UserName)
+			PrintWaitQueInfoChanged(playerPosInfo, define.QUE_CHANGE_REASON_PLAYER_LEAVE)
+		}
+
+	}
 }
 
 // 向控制台打印实时更新的用户数据
@@ -119,8 +160,9 @@ func ListenChanges() {
 func QuitGame() {
 	userName := <-QuitGameChan
 	log.Printf("QuitQueue %s", userName)
-	if _, ok := WaitNumMap[userName]; ok {
-		delete(WaitNumMap, userName)
+
+	if _, ok := WaitNumMap.Load(userName); ok {
+		WaitNumMap.Delete(userName)
 	} else {
 		DecrGamingPlayersNum()
 	}
@@ -132,9 +174,11 @@ func HandleLogin() {
 		for e := WaitList.Front(); e != nil; e = e.Next() {
 			clientInfo := e.Value.(define.ClientInfo)
 			//先判断是否还在登录池
-			if _, ok := WaitNumMap[clientInfo.UserName]; ok {
+			if _, ok := WaitNumMap.Load(clientInfo.UserName); ok {
 				//在等待缓存map删除对应玩家
-				delete(WaitNumMap, clientInfo.UserName)
+				WaitNumMap.Delete(clientInfo.UserName)
+				//对等待队列减1
+				DecrWaitingQuePlayersNum()
 				//对游戏人数加1
 				IncrGamingPlayersNum()
 
@@ -152,7 +196,7 @@ func HandleLogin() {
 						clientInfo.UserName,
 						token)
 
-					c.(gnet.Conn).AsyncWrite(notifyInfo.ToBytes())
+					(*(c.(*define.ConnInfo).Conn)).AsyncWrite(notifyInfo.ToBytes())
 				}
 
 			}
@@ -174,7 +218,7 @@ func handleQuery(clientInfo *define.ClientInfo) {
 			playerQueInfo.PlayersGameIngNum,
 			playerQueInfo.QuePlayerPos)
 
-		c.(gnet.Conn).AsyncWrite(queryRes.ToBytes())
+		(*(c.(*define.ConnInfo).Conn)).AsyncWrite(queryRes.ToBytes())
 	}
 }
 
@@ -215,6 +259,21 @@ func IncrGamingPlayersNum() int32 {
 
 func DecrGamingPlayersNum() int {
 	n := atomic.AddInt32(&OnGamingPlayers, -1)
+	return int(n)
+}
+
+func GetWaitingQuePlayersNum() int32 {
+	n := atomic.LoadInt32(&OnWaitingQuePlayers)
+	return n
+}
+
+func IncrWaitingQuePlayersNum() int32 {
+	n := atomic.AddInt32(&OnWaitingQuePlayers, 1)
+	return n
+}
+
+func DecrWaitingQuePlayersNum() int {
+	n := atomic.AddInt32(&OnWaitingQuePlayers, -1)
 	return int(n)
 }
 
