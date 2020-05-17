@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
 
 func run(userName string, wg *sync.WaitGroup) {
@@ -94,16 +95,30 @@ func run(userName string, wg *sync.WaitGroup) {
 	}
 	PrintProtoInfo(notifyBuf)
 
-	notifyBuf, err = fc.ReadFrame()
-	if err != nil {
-		panic(err)
+
+	for {
+		time.Sleep(5* time.Second)
+		//查询位置
+		queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
+			define.PROTO_VERSION,
+			userName)
+		queryInfoBuf := &bytes.Buffer{}
+		binary.Write(queryInfoBuf, binary.BigEndian, queryInfo.ToBytes())
+		err = fc.WriteFrame(queryInfoBuf.Bytes())
+		if err != nil {
+			panic(err)
+		}
+		notifyBuf, err = fc.ReadFrame()
+		if err != nil {
+			panic(err)
+		}
+		PrintProtoInfo(notifyBuf)
 	}
-	PrintProtoInfo(notifyBuf)
 
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 10
+	var goNum int = 10000
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {

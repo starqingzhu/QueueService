@@ -104,7 +104,6 @@ func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
 
 		head, tail := connInfo.Buff.LazyRead(minProtoLen)
 		head = append(head, tail...)
-		log.Printf("minProtoLen: %d bufflen: %d headLen: %d tailLen: %d\n", minProtoLen, connInfo.Buff.Length(), len(head), len(tail))
 
 		lenInfo := proto.ParseToProtoLen(head)
 
