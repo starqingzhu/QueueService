@@ -20,7 +20,7 @@ func run(userName string, wg *sync.WaitGroup) {
 		}
 	}()
 	defer wg.Done()
-	conn, err := net.Dial("tcp", "127.0.0.1:9000")
+	conn, err := net.Dial("tcp", "192.168.50.243:9000")
 	if err != nil {
 		panic(err)
 	}
@@ -94,16 +94,16 @@ func run(userName string, wg *sync.WaitGroup) {
 	}
 	PrintProtoInfo(notifyBuf)
 
-	//notifyBuf, err = fc.ReadFrame()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//PrintProtoInfo(notifyBuf)
+	notifyBuf, err = fc.ReadFrame()
+	if err != nil {
+		panic(err)
+	}
+	PrintProtoInfo(notifyBuf)
 
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 1
+	var goNum int = 2000
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {

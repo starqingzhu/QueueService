@@ -33,8 +33,6 @@ func NewQuitLoginQueReq(cmdNo int64, version string, userName string) *QuitLogin
 
 	info.UserName = userName
 
-	//log.Printf("NewQueryPlayerLoginQuePosReq %+v\n", info)
-
 	return info
 }
 
@@ -44,8 +42,6 @@ func ParseToQuitLoginQueReq(req []byte) *QuitLoginQueReq {
 	info.ProtoHeader = *ParseToReqHead(req)
 	curLen := int(info.HeaderLen)
 	info.UserName = string(req[curLen:])
-
-	//log.Printf("ParseToQueryPlayerLoginQuePosReq %+v\n", info)
 
 	return info
 }

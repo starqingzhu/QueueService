@@ -47,45 +47,22 @@ func NewLoginReq(cmdNo int64, version string, userName string) *LoginReq {
 	info.BodyLen = int32(len(userName))
 	info.UserName = userName
 
-	//log.Printf("NewLoginReq %+v\n", info)
-
 	return info
 }
 
-func ParseToLoginReq(res []byte) *LoginReq {
+func ParseToLoginReq(req []byte) *LoginReq {
 	info := &LoginReq{}
 
-	cmdNoTypeLen := int(unsafe.Sizeof(info.CmdNo))
-	info.CmdNo = int64(binary.BigEndian.Uint64(res[:cmdNoTypeLen]))
-
-	curLen := cmdNoTypeLen
-	headerTypeLen := int(unsafe.Sizeof(info.HeaderLen))
-	info.HeaderLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+headerTypeLen]))
-
-	curLen += headerTypeLen
-	bodyTypeLen := int(unsafe.Sizeof(info.BodyLen))
-	info.BodyLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+bodyTypeLen]))
-
-	curLen += bodyTypeLen
-	info.Version = string(res[curLen:info.HeaderLen])
-
-	curLen = int(info.HeaderLen)
-	info.UserName = string(res[curLen:])
-
-	//log.Printf("ParseToLoginReq %+v\n", info)
+	info.ProtoHeader = *ParseToReqHead(req)
+	info.UserName = string(req[info.HeaderLen:])
 
 	return info
 }
 
 func (info *LoginReq) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
-	binary.Write(resBuf, binary.BigEndian, info.CmdNo)
-	binary.Write(resBuf, binary.BigEndian, info.HeaderLen)
-	binary.Write(resBuf, binary.BigEndian, info.BodyLen)
-	binary.Write(resBuf, binary.BigEndian, []byte(info.Version))
+	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
-
-	//log.Printf("LoginReq ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
 
 	return resBuf.Bytes()
 }
@@ -99,44 +76,26 @@ func NewLoginRes(cmdNo int64, version string, userName string, status uint16) *L
 	info.UserName = userName
 	info.Status = status
 
-	//log.Printf("NewLoginRes %+v\n", info)
-
 	return info
 }
 
 func ParseToLoginRes(res []byte) *LoginRes {
 	info := &LoginRes{}
 
-	cmdNoTypeLen := int(unsafe.Sizeof(info.CmdNo))
-	info.CmdNo = int64(binary.BigEndian.Uint64(res[:cmdNoTypeLen]))
-
-	curLen := cmdNoTypeLen
-	headerTypeLen := int(unsafe.Sizeof(info.HeaderLen))
-	info.HeaderLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+headerTypeLen]))
-
-	curLen += headerTypeLen
-	bodyTypeLen := int(unsafe.Sizeof(info.BodyLen))
-	info.BodyLen = int32(binary.BigEndian.Uint32(res[curLen : curLen+bodyTypeLen]))
-
-	curLen += bodyTypeLen
-	info.Version = string(res[curLen:info.HeaderLen])
+	info.ProtoHeader = *ParseToReqHead(res)
 
 	statusLen := int32(unsafe.Sizeof(info.Status))
 	endLen := info.HeaderLen + info.BodyLen - statusLen
 	info.UserName = string(res[info.HeaderLen:endLen])
 
 	info.Status = binary.BigEndian.Uint16(res[endLen:])
-	//log.Printf("ParseToLoginRes %+v\n", info)
 
 	return info
 }
 
 func (info *LoginRes) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
-	binary.Write(resBuf, binary.BigEndian, info.CmdNo)
-	binary.Write(resBuf, binary.BigEndian, info.HeaderLen)
-	binary.Write(resBuf, binary.BigEndian, info.BodyLen)
-	binary.Write(resBuf, binary.BigEndian, []byte(info.Version))
+	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 	binary.Write(resBuf, binary.BigEndian, info.Status)
 

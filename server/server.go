@@ -12,6 +12,8 @@ import (
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/pool/goroutine"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 	"time"
 )
@@ -190,7 +192,11 @@ func main() {
 	flag.BoolVar(&multicore, "multicore", true, "multicore")
 	flag.Parse()
 
-	runtime.GOMAXPROCS(2)
+	go func() {
+		http.ListenAndServe(":10000", nil)
+	}()
+
+	runtime.GOMAXPROCS(4)
 	//初始化工作
 	queue.Init()
 	queue.OperateWaitList()
