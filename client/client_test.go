@@ -21,7 +21,7 @@ func run(userName string, wg *sync.WaitGroup) {
 		}
 	}()
 	defer wg.Done()
-	conn, err := net.Dial("tcp", "192.168.50.243:9000")
+	conn, err := net.Dial("tcp", "127.0.0.1:9000") //"192.168.50.243:9000"
 	if err != nil {
 		panic(err)
 	}
@@ -95,9 +95,8 @@ func run(userName string, wg *sync.WaitGroup) {
 	}
 	PrintProtoInfo(notifyBuf)
 
-
 	for {
-		time.Sleep(5* time.Second)
+		time.Sleep(5 * time.Second)
 		//查询位置
 		queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
 			define.PROTO_VERSION,
@@ -118,7 +117,7 @@ func run(userName string, wg *sync.WaitGroup) {
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 10000
+	var goNum int = 10
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {

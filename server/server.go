@@ -3,11 +3,11 @@ package main
 import (
 	"QueueService/connManager"
 	"QueueService/define"
+	"QueueService/preload"
 	"QueueService/proto"
 	"QueueService/queue"
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/pool/goroutine"
@@ -184,22 +184,15 @@ func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
 }
 
 func main() {
-	var port int
-	var multicore bool
-
-	flag.IntVar(&port, "port", 9000, "server port")
-	flag.BoolVar(&multicore, "multicore", true, "multicore")
-	flag.Parse()
-
 	go func() {
-		http.ListenAndServe(":10000", nil)
+		http.ListenAndServe(preload.Conf.Stress.HttpAddr, nil)
 	}()
 
-	runtime.GOMAXPROCS(4)
+	runtime.GOMAXPROCS(preload.Conf.Server.GoMaxProcsNum)
 	//初始化工作
 	queue.Init()
 	queue.OperateWaitList()
 
-	addr := fmt.Sprintf("tcp://:%d", port)
-	codecServerRun(addr, multicore, true, nil)
+	addr := fmt.Sprintf("tcp://:%d", preload.Conf.TcpServer.TcpPort)
+	codecServerRun(addr, preload.Conf.Server.Multicore, true, nil)
 }
