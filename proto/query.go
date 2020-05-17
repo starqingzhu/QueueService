@@ -36,29 +36,29 @@ func NewQueryPlayerLoginQuePosReq(cmdNo int64, version string, userName string) 
 
 	info.UserName = userName
 
-	//log.Printf("NewQueryPlayerLoginQuePosReq %+v\n", info)
-
 	return info
 }
 
 func ParseToQueryPlayerLoginQuePosReq(req []byte) *QueryPlayerLoginQuePosReq {
 	info := &QueryPlayerLoginQuePosReq{}
 
+	//包头
 	info.ProtoHeader = *ParseToReqHead(req)
+
+	//包体
 	curLen := int(info.HeaderLen)
 	info.UserName = string(req[curLen:])
-
-	//log.Printf("ParseToQueryPlayerLoginQuePosReq %+v\n", info)
 
 	return info
 }
 
 func (info *QueryPlayerLoginQuePosReq) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
-	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
-	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 
-	//log.Printf("QueryPlayerLoginQuePosReq ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
+	//包头
+	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+	//包体
+	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 
 	return resBuf.Bytes()
 }
@@ -69,13 +69,13 @@ func NewQueryPlayerLoginQuePosRes(cmdNo int64, version string, queWaitPlayersNum
 	bodyLen := int32(unsafe.Sizeof(info.QueryPlayerLoginQuePosResBody.QueWaitPlayersNum) +
 		unsafe.Sizeof(info.QueryPlayerLoginQuePosResBody.PlayersGameIngNum) +
 		unsafe.Sizeof(info.QueryPlayerLoginQuePosResBody.QuePlayerPos))
+	//包头
 	info.ProtoHeader = *NewReqHead(cmdNo, version, bodyLen)
 
+	//包体
 	info.QueWaitPlayersNum = queWaitPlayersNum
 	info.PlayersGameIngNum = playersGameIngNum
 	info.QuePlayerPos = quePlayerPos
-
-	//log.Printf("NewQueryPlayerLoginQuePosReq %+v\n", info)
 
 	return info
 }
@@ -83,8 +83,10 @@ func NewQueryPlayerLoginQuePosRes(cmdNo int64, version string, queWaitPlayersNum
 func ParseToQueryPlayerLoginQuePosRes(res []byte) *QueryPlayerLoginQuePosRes {
 	info := &QueryPlayerLoginQuePosRes{}
 
+	//包头
 	info.ProtoHeader = *ParseToReqHead(res)
 
+	//包体
 	curLen := int(info.HeaderLen)
 	endLen := curLen + int(unsafe.Sizeof(info.QueWaitPlayersNum))
 	info.QueWaitPlayersNum = int32(binary.BigEndian.Uint32(res[curLen:endLen]))
@@ -97,19 +99,19 @@ func ParseToQueryPlayerLoginQuePosRes(res []byte) *QueryPlayerLoginQuePosRes {
 	endLen = curLen + int(unsafe.Sizeof(info.PlayersGameIngNum))
 	info.PlayersGameIngNum = int32(binary.BigEndian.Uint32(res[curLen:endLen]))
 
-	//log.Printf("ParseToQueryPlayerLoginQuePosRes %+v\n", info)
-
 	return info
 }
 
 func (info *QueryPlayerLoginQuePosRes) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
+
+	//包头
 	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+
+	//包体
 	binary.Write(resBuf, binary.BigEndian, info.QueWaitPlayersNum)
 	binary.Write(resBuf, binary.BigEndian, info.QuePlayerPos)
 	binary.Write(resBuf, binary.BigEndian, info.PlayersGameIngNum)
-
-	//log.Printf("QueryPlayerLoginQuePosRes ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
 
 	return resBuf.Bytes()
 }

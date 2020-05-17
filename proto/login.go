@@ -41,10 +41,14 @@ type (
 
 func NewLoginReq(cmdNo int64, version string, userName string) *LoginReq {
 	info := &LoginReq{}
+
+	//包头
 	info.CmdNo = cmdNo
 	info.Version = version
 	info.HeaderLen = int32(unsafe.Sizeof(info.CmdNo)+unsafe.Sizeof(info.BodyLen)+unsafe.Sizeof(info.HeaderLen)) + int32(len(info.Version))
 	info.BodyLen = int32(len(userName))
+
+	//包体
 	info.UserName = userName
 
 	return info
@@ -53,7 +57,10 @@ func NewLoginReq(cmdNo int64, version string, userName string) *LoginReq {
 func ParseToLoginReq(req []byte) *LoginReq {
 	info := &LoginReq{}
 
+	//包头
 	info.ProtoHeader = *ParseToReqHead(req)
+
+	//包体
 	info.UserName = string(req[info.HeaderLen:])
 
 	return info
@@ -61,7 +68,10 @@ func ParseToLoginReq(req []byte) *LoginReq {
 
 func (info *LoginReq) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
+
+	//包头
 	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+	//包体
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 
 	return resBuf.Bytes()
@@ -69,10 +79,14 @@ func (info *LoginReq) ToBytes() []byte {
 
 func NewLoginRes(cmdNo int64, version string, userName string, status uint16) *LoginRes {
 	info := &LoginRes{}
+
+	//包头
 	info.CmdNo = cmdNo
 	info.Version = version
 	info.HeaderLen = int32(unsafe.Sizeof(info.CmdNo)+unsafe.Sizeof(info.BodyLen)+unsafe.Sizeof(info.HeaderLen)) + int32(len(info.Version))
 	info.BodyLen = int32(len(userName) + int(unsafe.Sizeof(info.Status)))
+
+	//包体
 	info.UserName = userName
 	info.Status = status
 
@@ -82,8 +96,10 @@ func NewLoginRes(cmdNo int64, version string, userName string, status uint16) *L
 func ParseToLoginRes(res []byte) *LoginRes {
 	info := &LoginRes{}
 
+	//包体
 	info.ProtoHeader = *ParseToReqHead(res)
 
+	//包体
 	statusLen := int32(unsafe.Sizeof(info.Status))
 	endLen := info.HeaderLen + info.BodyLen - statusLen
 	info.UserName = string(res[info.HeaderLen:endLen])
@@ -95,11 +111,13 @@ func ParseToLoginRes(res []byte) *LoginRes {
 
 func (info *LoginRes) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
+
+	//包头
 	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+
+	//包体
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 	binary.Write(resBuf, binary.BigEndian, info.Status)
-
-	//log.Printf("LoginRes ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
 
 	return resBuf.Bytes()
 }
@@ -125,10 +143,12 @@ func NewLoginNotify(cmdNo int64, version string, userName string, token string) 
 
 func ParseToLoginNotify(notify []byte) *LoginNotify {
 
+	//包头
 	infoHead := ParseToReqHead(notify)
 	info := &LoginNotify{}
 	info.ProtoHeader = *infoHead
 
+	//包体
 	curLen := info.HeaderLen
 	userNameTypeLen := int32(unsafe.Sizeof(info.UserNameLen))
 	endLen := info.HeaderLen + userNameTypeLen
@@ -146,26 +166,19 @@ func ParseToLoginNotify(notify []byte) *LoginNotify {
 	curLen = endLen
 	info.Token = string(notify[curLen:])
 
-	//log.Printf("ParseToLoginNotify %+v\n", info)
-
 	return info
 }
 
 func (info *LoginNotify) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
 	//包头
-	binary.Write(resBuf, binary.BigEndian, info.CmdNo)
-	binary.Write(resBuf, binary.BigEndian, info.HeaderLen)
-	binary.Write(resBuf, binary.BigEndian, info.BodyLen)
-	binary.Write(resBuf, binary.BigEndian, []byte(info.Version))
+	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
 
 	//包体
 	binary.Write(resBuf, binary.BigEndian, info.UserNameLen)
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 	binary.Write(resBuf, binary.BigEndian, info.TokenLen)
 	binary.Write(resBuf, binary.BigEndian, []byte(info.Token))
-
-	//log.Printf("LoginNotify ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
 
 	return resBuf.Bytes()
 }

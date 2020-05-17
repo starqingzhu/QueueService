@@ -39,7 +39,10 @@ func NewQuitLoginQueReq(cmdNo int64, version string, userName string) *QuitLogin
 func ParseToQuitLoginQueReq(req []byte) *QuitLoginQueReq {
 	info := &QuitLoginQueReq{}
 
+	//包头
 	info.ProtoHeader = *ParseToReqHead(req)
+
+	//包体
 	curLen := int(info.HeaderLen)
 	info.UserName = string(req[curLen:])
 
@@ -48,10 +51,11 @@ func ParseToQuitLoginQueReq(req []byte) *QuitLoginQueReq {
 
 func (info *QuitLoginQueReq) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
-	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
-	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 
-	//log.Printf("QueryPlayerLoginQuePosReq ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
+	//包头
+	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+	//包体
+	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
 
 	return resBuf.Bytes()
 }
@@ -60,12 +64,12 @@ func NewQuitLoginQueRes(cmdNo int64, version string, userName string, status uin
 	info := &QuitLoginQueRes{}
 
 	bodyLen := int32(len(userName) + int(unsafe.Sizeof(info.Status)))
+	//包头
 	info.ProtoHeader = *NewReqHead(cmdNo, version, bodyLen)
 
+	//包体
 	info.UserName = userName
 	info.Status = status
-
-	//log.Printf("NewQuitLoginQueRes %+v\n", info)
 
 	return info
 }
@@ -73,9 +77,11 @@ func NewQuitLoginQueRes(cmdNo int64, version string, userName string, status uin
 func ParseToQuitLoginQueRes(res []byte) *QuitLoginQueRes {
 	info := &QuitLoginQueRes{}
 
+	//包头
 	info.ProtoHeader = *ParseToReqHead(res)
 	curLen := int(info.HeaderLen)
 
+	//包体
 	statusTypeLen := int(unsafe.Sizeof(info.Status))
 	endLen := curLen + statusTypeLen
 	info.Status = binary.BigEndian.Uint16(res[curLen:endLen])
@@ -83,18 +89,18 @@ func ParseToQuitLoginQueRes(res []byte) *QuitLoginQueRes {
 	curLen = endLen
 	info.UserName = string(res[curLen:])
 
-	//log.Printf("ParseToQuitLoginQueRes %+v\n", info)
-
 	return info
 }
 
 func (info *QuitLoginQueRes) ToBytes() []byte {
 	resBuf := &bytes.Buffer{}
+
+	//包头
 	binary.Write(resBuf, binary.BigEndian, info.ProtoHeader.ToBytes())
+
+	//包体
 	binary.Write(resBuf, binary.BigEndian, info.Status)
 	binary.Write(resBuf, binary.BigEndian, []byte(info.UserName))
-
-	//log.Printf("QuitLoginQueRes ToBytes: %x len:%d\n", resBuf.Bytes(), resBuf.Len())
 
 	return resBuf.Bytes()
 }
