@@ -42,6 +42,7 @@
 		QueryPlayerLoginQuePosReqBody		//协议体
 	}
 	
+	客户端和服务端通信的时序图	
 ![](doc/login.png)
 	
 
