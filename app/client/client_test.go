@@ -48,6 +48,8 @@ func run(userName string, wg *sync.WaitGroup) {
 
 	loginInfoBuf := &bytes.Buffer{}
 	binary.Write(loginInfoBuf, binary.BigEndian, loginInfo.ToBytes())
+
+	tm1 := time.Now().UnixNano() / 1000000
 	err = fc.WriteFrame(loginInfoBuf.Bytes())
 	if err != nil {
 		panic(err)
@@ -58,7 +60,8 @@ func run(userName string, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(err)
 	}
-	PrintProtoInfo(buf)
+	tm2 := time.Now().UnixNano() / 1000000
+	PrintProtoInfo(buf, tm1, tm2)
 
 	//查询位置
 	//queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
@@ -87,7 +90,8 @@ func run(userName string, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(err)
 	}
-	PrintProtoInfo(notifyBuf)
+	tm3 := time.Now().UnixNano() / 1000000
+	PrintProtoInfo(notifyBuf, tm1, tm3)
 
 	//notifyBuf, err = fc.ReadFrame()
 	//if err != nil {
@@ -117,7 +121,7 @@ func run(userName string, wg *sync.WaitGroup) {
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 10000
+	var goNum int = 100
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {
@@ -126,24 +130,24 @@ func TestClient(t *testing.T) {
 	wg.Wait()
 }
 
-func PrintProtoInfo(info []byte) {
+func PrintProtoInfo(info []byte, begin int64, end int64) {
 	headInfo := proto.ParseToReqHead(info)
 	switch headInfo.CmdNo {
 	case define.CMD_LOGIN_RES_NO:
 		resp := proto.ParseToLoginRes(info)
-		fmt.Printf("received login res: %+v\n", resp)
+		fmt.Printf("elapsed: %d received login res: %+v\n", end-begin, resp)
 
 	case define.CMD_LOGIN_NOTIFY_NO:
 		notify := proto.ParseToLoginNotify(info)
-		fmt.Printf("received login notify: %+v\n", notify)
+		fmt.Printf("elapsed: %d received login notify: %+v\n", end-begin, notify)
 
 	case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO:
 		resp := proto.ParseToQueryPlayerLoginQuePosRes(info)
-		fmt.Printf("received query res: %+v\n", resp)
+		fmt.Printf("elapsed: %d received query res: %+v\n", end-begin, resp)
 
 	case define.CMD_LOGIN_QUIT_RSP_NO:
 		resp := proto.ParseToQuitLoginQueRes(info)
-		fmt.Printf("received quit res: %+v\n", resp)
+		fmt.Printf("elapsed: %d received quit res: %+v\n", end-begin, resp)
 
 	default:
 

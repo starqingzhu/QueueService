@@ -207,9 +207,7 @@ func HandleLogin() {
 			}
 
 			WaitList.Remove(e)
-			log.Printf("HandleLogin idle---->>>> %+v",clientInfo)
 		}
-
 
 		time.Sleep(define.LOGIN_HANDLE_WAIT_TIME * time.Millisecond)
 	}
@@ -245,13 +243,13 @@ func getPlayerRelativeIndex(playerLoginNum int32) int32 {
 等待队列成员变动时打印信息
 */
 func PrintWaitQueInfoChanged(playerQueInfo *define.PlayerQueInfo, reason uint16) {
-	//changeInfo := define.ChangeInfo{
-	//	QueWaitPlayersNum:     playerQueInfo.QueWaitPlayersNum,
-	//	PlayersGameIngNum:     playerQueInfo.PlayersGameIngNum,
-	//	UserName:              playerQueInfo.UserName,
-	//	QuePlayerChangeReason: reason,
-	//}
-	//ChangeInfoChan <- changeInfo
+	changeInfo := define.ChangeInfo{
+		QueWaitPlayersNum:     playerQueInfo.QueWaitPlayersNum,
+		PlayersGameIngNum:     playerQueInfo.PlayersGameIngNum,
+		UserName:              playerQueInfo.UserName,
+		QuePlayerChangeReason: reason,
+	}
+	ChangeInfoChan <- changeInfo
 }
 
 /*
