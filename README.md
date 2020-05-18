@@ -42,7 +42,7 @@
 		QueryPlayerLoginQuePosReqBody		//协议体
 	}
 	
-![] (doc/login.png)
+![](doc/login.png)
 	
 
 ## 三. 使用
