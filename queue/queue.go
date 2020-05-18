@@ -16,8 +16,9 @@ var (
 	EnqueueChan    chan define.ClientInfo // 缓存进入等待队列消息（仅仅是缓存并非真正缓存队列）
 	QueryqueueChan chan define.ClientInfo // 查询玩家排队位置时发送
 	QuitQueueChan  chan define.ClientInfo // 退出排队时发送(用户主动行为)
-	//QuitGameChan   chan string            //  退出游戏时发送  时间不够先不管退出游戏的人（只关心上面退出等待队列的就ok了）
 	ChangeInfoChan chan define.ChangeInfo // 在线人数变化时发送
+	//QuitGameChan   chan string            //  退出游戏时发送  时间不够先不管退出游戏的人（只关心上面退出等待队列的就ok了）
+
 
 )
 
