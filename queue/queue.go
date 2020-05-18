@@ -19,7 +19,6 @@ var (
 	ChangeInfoChan chan define.ChangeInfo // 在线人数变化时发送
 	//QuitGameChan   chan string            //  退出游戏时发送  时间不够先不管退出游戏的人（只关心上面退出等待队列的就ok了）
 
-
 )
 
 var (
@@ -210,6 +209,7 @@ func HandleLogin() {
 			WaitList.Remove(e)
 		}
 
+		log.Printf("HandleLogin idle---->>>>")
 		time.Sleep(define.LOGIN_HANDLE_WAIT_TIME * time.Millisecond)
 	}
 }
@@ -244,13 +244,13 @@ func getPlayerRelativeIndex(playerLoginNum int32) int32 {
 等待队列成员变动时打印信息
 */
 func PrintWaitQueInfoChanged(playerQueInfo *define.PlayerQueInfo, reason uint16) {
-	changeInfo := define.ChangeInfo{
-		QueWaitPlayersNum:     playerQueInfo.QueWaitPlayersNum,
-		PlayersGameIngNum:     playerQueInfo.PlayersGameIngNum,
-		UserName:              playerQueInfo.UserName,
-		QuePlayerChangeReason: reason,
-	}
-	ChangeInfoChan <- changeInfo
+	//changeInfo := define.ChangeInfo{
+	//	QueWaitPlayersNum:     playerQueInfo.QueWaitPlayersNum,
+	//	PlayersGameIngNum:     playerQueInfo.PlayersGameIngNum,
+	//	UserName:              playerQueInfo.UserName,
+	//	QuePlayerChangeReason: reason,
+	//}
+	//ChangeInfoChan <- changeInfo
 }
 
 /*

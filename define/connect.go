@@ -3,7 +3,6 @@ package define
 import (
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/ringbuffer"
-	"log"
 )
 
 const (
@@ -23,6 +22,6 @@ func NewConnInfo(conn *gnet.Conn) *ConnInfo {
 		Buff: ringbuffer.New(CONN_BUFF_MAX_SIZE),
 	}
 
-	log.Printf("NewConnInfo len: %d free: %d cap: %d\n", connInfo.Buff.Len(), connInfo.Buff.Free(), connInfo.Buff.Cap())
+	//log.Printf("NewConnInfo len: %d free: %d cap: %d\n", connInfo.Buff.Len(), connInfo.Buff.Free(), connInfo.Buff.Cap())
 	return connInfo
 }

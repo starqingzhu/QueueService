@@ -21,7 +21,7 @@ func run(userName string, wg *sync.WaitGroup) {
 		}
 	}()
 	defer wg.Done()
-	conn, err := net.Dial("tcp", "127.0.0.1:9000") //"192.168.50.243:9000"
+	conn, err := net.Dial("tcp", "192.168.50.243:9000") //"127.0.0.1:9000") //
 	if err != nil {
 		panic(err)
 	}
@@ -61,15 +61,15 @@ func run(userName string, wg *sync.WaitGroup) {
 	PrintProtoInfo(buf)
 
 	//查询位置
-	queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
-		define.PROTO_VERSION,
-		userName)
-	queryInfoBuf := &bytes.Buffer{}
-	binary.Write(queryInfoBuf, binary.BigEndian, queryInfo.ToBytes())
-	err = fc.WriteFrame(queryInfoBuf.Bytes())
-	if err != nil {
-		panic(err)
-	}
+	//queryInfo := proto.NewQueryPlayerLoginQuePosReq(define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO,
+	//	define.PROTO_VERSION,
+	//	userName)
+	//queryInfoBuf := &bytes.Buffer{}
+	//binary.Write(queryInfoBuf, binary.BigEndian, queryInfo.ToBytes())
+	//err = fc.WriteFrame(queryInfoBuf.Bytes())
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	//在登录之前退出队列
 	//quitInfo := proto.NewQuitLoginQueReq(define.CMD_LOGIN_QUIT_REQ_NO,
@@ -89,11 +89,11 @@ func run(userName string, wg *sync.WaitGroup) {
 	}
 	PrintProtoInfo(notifyBuf)
 
-	notifyBuf, err = fc.ReadFrame()
-	if err != nil {
-		panic(err)
-	}
-	PrintProtoInfo(notifyBuf)
+	//notifyBuf, err = fc.ReadFrame()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//PrintProtoInfo(notifyBuf)
 
 	for {
 		time.Sleep(5 * time.Second)
@@ -117,7 +117,7 @@ func run(userName string, wg *sync.WaitGroup) {
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 200
+	var goNum int = 10000
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {
