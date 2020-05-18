@@ -207,9 +207,10 @@ func HandleLogin() {
 			}
 
 			WaitList.Remove(e)
+			log.Printf("HandleLogin idle---->>>> %+v",clientInfo)
 		}
 
-		log.Printf("HandleLogin idle---->>>>")
+
 		time.Sleep(define.LOGIN_HANDLE_WAIT_TIME * time.Millisecond)
 	}
 }
