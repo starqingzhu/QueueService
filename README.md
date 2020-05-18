@@ -12,7 +12,38 @@
 	1.正在游戏的用户退出(未支持)
 
 ## 二. 实现
-![](define/cmdNo.go)
+	一个客户端，一个服务端，之间通过TCP长链接通信（开启keepalive 心跳）（测试用例中模拟多客户端压测）。
+	通信协议命令号：
+	CMD_LOGIN_REQ_NO    = 10001 //登录请求
+	CMD_LOGIN_RES_NO    = 20001 //登录返回
+	CMD_LOGIN_NOTIFY_NO = 30001 //登录异步通知
+
+	CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO = 10002 //查询玩家在登录队列中的位置 请求
+	CMD_QUERY_PLAYER_LOGIN_QUE_POS_RSP_NO = 20002 //查询玩家在登录队列中的位置 返回
+
+	CMD_LOGIN_QUIT_REQ_NO = 10003 //玩家退出等待队列请求
+	CMD_LOGIN_QUIT_RSP_NO = 20003 //玩家退出等待队列回复
+
+	通信协议体
+	协议头
+	ProtoHeader struct {
+		CmdNo     int64	 //协议命令号
+		HeaderLen int32	 //包头长度
+		BodyLen   int32  //包体长度
+		Version   string //固定长度
+	}
+	协议体（举一例）
+	QueryPlayerLoginQuePosReqBody struct {
+		UserName string	//用户名
+	}
+	整个包（举一例）
+	QueryPlayerLoginQuePosReq struct {
+		ProtoHeader				//协议头
+		QueryPlayerLoginQuePosReqBody		//协议体
+	}
+	
+	
+	
 
 ## 三. 使用
 
