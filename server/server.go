@@ -1,20 +1,16 @@
-package main
+package server
 
 import (
 	"QueueService/connManager"
 	"QueueService/define"
-	"QueueService/preload"
 	"QueueService/proto"
 	"QueueService/queue"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/pool/goroutine"
 	"log"
-	"net/http"
-	_ "net/http/pprof"
-	"runtime"
+
 	"time"
 )
 
@@ -119,8 +115,9 @@ func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
 		switch lenInfo.CmdNo {
 		case define.CMD_LOGIN_REQ_NO:
 			loginReqInfo := proto.ParseToLoginReq(frame)
-			loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
 
+			loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
+			//预返回成功
 			if err := (*connInfo.Conn).AsyncWrite(loginResInfo.ToBytes()); err != nil {
 				log.Printf("sendto %s content %v ,err: %v\n", (*connInfo.Conn).RemoteAddr().String(), loginResInfo, err)
 			}
@@ -158,7 +155,7 @@ func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
 
 }
 
-func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
+func CodecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
 	var err error
 	if codec == nil {
 		encoderConfig := gnet.EncoderConfig{
@@ -181,18 +178,4 @@ func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func main() {
-	go func() {
-		http.ListenAndServe(preload.Conf.Stress.HttpAddr, nil)
-	}()
-
-	runtime.GOMAXPROCS(preload.Conf.Server.GoMaxProcsNum)
-	//初始化工作
-	queue.Init()
-	queue.OperateWaitList()
-
-	addr := fmt.Sprintf("tcp://:%d", preload.Conf.TcpServer.TcpPort)
-	codecServerRun(addr, preload.Conf.Server.Multicore, true, nil)
 }

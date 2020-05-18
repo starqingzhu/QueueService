@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 )
 
-var basePath = ".."
+var basePath = "../.."
 
 var confPath string
 

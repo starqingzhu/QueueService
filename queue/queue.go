@@ -13,17 +13,17 @@ import (
 )
 
 var (
-	EnqueueChan    chan define.ClientInfo // 进入排队时发送
+	EnqueueChan    chan define.ClientInfo // 缓存进入等待队列消息（仅仅是缓存并非真正缓存队列）
 	QueryqueueChan chan define.ClientInfo // 查询玩家排队位置时发送
 	QuitQueueChan  chan define.ClientInfo // 退出排队时发送(用户主动行为)
-	QuitGameChan   chan string            //  退出游戏时发送
+	//QuitGameChan   chan string            //  退出游戏时发送  时间不够先不管退出游戏的人（只关心上面退出等待队列的就ok了）
 	ChangeInfoChan chan define.ChangeInfo // 在线人数变化时发送
 
 )
 
 var (
-	WaitNumMap          sync.Map   // map[string]int32 // 用户id和其当前排队位置的Map
-	WaitList            *list.List // 正在排队中的玩家
+	WaitNumMap          sync.Map   // 缓存队列map（map[string]int32  用户id和其当前排队位置的Map）
+	WaitList            *list.List // 登录等待队列 正在排队中的玩家
 	OnWaitingQuePlayers int32      //正在排队中的玩家人数
 	OnGamingPlayers     int32      // 正在游戏中的人数
 	LoginWaitCurNum     int32      //当前队列的自增序列值
@@ -33,27 +33,31 @@ func Init() {
 	EnqueueChan = make(chan define.ClientInfo, define.LOGIN_QUEUE_MAX_LEN)
 	QueryqueueChan = make(chan define.ClientInfo, define.QUERY_LOGIN_QUEUE_MAX_LEN)
 	QuitQueueChan = make(chan define.ClientInfo, define.LOGIN_QUEUE_QUIT_MAX_LEN)
-	QuitGameChan = make(chan string, define.LOGIN_GAME_QUIT_MAX_LEN)
+	//QuitGameChan = make(chan string, define.LOGIN_GAME_QUIT_MAX_LEN)
 	ChangeInfoChan = make(chan define.ChangeInfo, define.LOGIN_QUEUE_MAX_LEN)
-	//WaitNumMap = make(map[string]int32, define.LOGIN_QUEUE_MAX_LEN)
 	WaitList = list.New()
 }
 
 func OperateWaitList() {
 	log.Printf("OperateWaitList enter------>>>>>>")
 
+	//需要异步打印信息的处理
 	go ListenChanges()
+
+	//等待队列中消息任务处理
 	go HandleLogin()
 
+	//入等待队列前，进入等待队列消息的缓存处理
 	go HandleEnqueueChan()
+
+	//查询在队列在等待队列中位置 消息的任务的处理
 	go HandleQueryqueueChan()
+
+	//用户退出等待队列的处理
 	go HandleQuitQueueChan()
-	//// 有用户退出游戏
-	//case <-QuitGameChan:
-	//	QuitGame()
-	//// 有用户退出，具体是退出排队还是游戏在Quit(）内进一步判断
-	//case userName := <-QuitChan:
-	//	Quit(userName)
+
+	// 有用户退出游戏  这个预留
+
 }
 
 // 有玩家登陆
@@ -106,7 +110,6 @@ func GetPlayerPosInfo(userName string) (res *define.PlayerQueInfo) {
 
 // 新用户登陆
 func Enqueue(clientInfo *define.ClientInfo) {
-	//log.Printf("Enqueue clientInfo:%v", clientInfo)
 	if _, ok := WaitNumMap.Load(clientInfo.UserName); !ok {
 		WaitNumMap.Store(clientInfo.UserName, IncrLoginCurNum())
 		WaitList.PushFront(*clientInfo)
@@ -115,7 +118,6 @@ func Enqueue(clientInfo *define.ClientInfo) {
 		playerPosInfo := GetPlayerPosInfo(clientInfo.UserName)
 		PrintWaitQueInfoChanged(playerPosInfo, define.QUE_CHANGE_REASON_PLAYER_ENTER)
 	}
-
 }
 
 // 用户退出排队
@@ -157,17 +159,21 @@ func ListenChanges() {
 }
 
 // 有用户退出游戏
-func QuitGame() {
-	userName := <-QuitGameChan
-	log.Printf("QuitQueue %s", userName)
+//func QuitGame() {
+//	userName := <-QuitGameChan
+//	log.Printf("QuitQueue %s", userName)
+//
+//	if _, ok := WaitNumMap.Load(userName); ok {
+//		WaitNumMap.Delete(userName)
+//	} else {
+//		DecrGamingPlayersNum()
+//	}
+//}
 
-	if _, ok := WaitNumMap.Load(userName); ok {
-		WaitNumMap.Delete(userName)
-	} else {
-		DecrGamingPlayersNum()
-	}
-}
-
+/*
+处理登录等待队列中的 玩家登录消息
+实现 登录逻辑处理
+*/
 func HandleLogin() {
 	log.Printf("HandleLogin enter------>>>>>>")
 	for {
@@ -246,6 +252,19 @@ func PrintWaitQueInfoChanged(playerQueInfo *define.PlayerQueInfo, reason uint16)
 	}
 	ChangeInfoChan <- changeInfo
 }
+
+/*
+检查用户是否已经在等待队列中
+
+true 表示在队列
+false 表示不在队列
+*/
+//func CheckPlayerIsInWaitQue(userName string) (res bool) {
+//	if _, ok := WaitNumMap.Load(userName); ok {
+//		res = true
+//	}
+//	return
+//}
 
 func GetGamingPlayersNum() int32 {
 	n := atomic.LoadInt32(&OnGamingPlayers)

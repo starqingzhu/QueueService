@@ -2,9 +2,9 @@ package define
 
 //登录状态
 const (
-	STATUS_LOGIN_FAIL    = 0
-	STATUS_LOGIN_SUCCESS = 1
-	STATUS_LOGIN_ING     = 2 //登录中
+	STATUS_LOGIN_FAIL = 0
+	STATUS_LOGIN_ING  = 1 //已经在登录队列中
+
 )
 
 const (
