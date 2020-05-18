@@ -2,9 +2,10 @@ package define
 
 //登录状态
 const (
-	STATUS_LOGIN_FAIL    = 0
-	STATUS_LOGIN_SUCCESS = 1
-	STATUS_LOGIN_ING     = 2 //登录中
+	STATUS_LOGIN_PRE_FAIL    = 0
+	STATUS_LOGIN_PRE_SUCCESS = 1 //预登录成功
+	STATUS_LOGIN_ING         = 2 //已经在登录队列中
+
 )
 
 const (
@@ -16,8 +17,8 @@ const (
 	LOGIN_QUEUE_MAX_LEN       = 10000 //todo 之后走配置文件
 	QUERY_LOGIN_QUEUE_MAX_LEN = 10000 //todo 之后走配置文件
 	LOGIN_QUEUE_QUIT_MAX_LEN  = 100   //todo 之后走配置文件
-	LOGIN_GAME_QUIT_MAX_LEN   = 10    //todo 之后走配置文件
-	LOGIN_MAX_NUM             = 10000 //todo 之后走配置
+	//LOGIN_GAME_QUIT_MAX_LEN   = 10    //todo 之后走配置文件
+	LOGIN_MAX_NUM = 10000 //todo 之后走配置
 
 	LOGIN_HANDLE_WAIT_TIME = 50 //单位毫秒
 )

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"QueueService/connManager"
@@ -7,14 +7,10 @@ import (
 	"QueueService/queue"
 	"bytes"
 	"encoding/binary"
-	"flag"
-	"fmt"
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/pool/goroutine"
 	"log"
-	"net/http"
-	_ "net/http/pprof"
-	"runtime"
+
 	"time"
 )
 
@@ -119,18 +115,29 @@ func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
 		switch lenInfo.CmdNo {
 		case define.CMD_LOGIN_REQ_NO:
 			loginReqInfo := proto.ParseToLoginReq(frame)
-			loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, define.STATUS_LOGIN_ING)
 
+			var status uint16 = define.STATUS_LOGIN_PRE_SUCCESS
+			inWaitQueFlag := queue.CheckPlayerIsInWaitQue(loginReqInfo.UserName)
+
+			if inWaitQueFlag {
+				status = define.STATUS_LOGIN_ING
+			}
+
+			loginResInfo := proto.NewLoginRes(define.CMD_LOGIN_RES_NO, loginReqInfo.Version, loginReqInfo.UserName, status)
+			//预返回成功
 			if err := (*connInfo.Conn).AsyncWrite(loginResInfo.ToBytes()); err != nil {
 				log.Printf("sendto %s content %v ,err: %v\n", (*connInfo.Conn).RemoteAddr().String(), loginResInfo, err)
 			}
 
-			clientInfo := &define.ClientInfo{
-				UserName: loginReqInfo.UserName,
-				ConnAddr: (*connInfo.Conn).RemoteAddr().String(),
+			//进入缓存chan
+			if !inWaitQueFlag {
+				clientInfo := &define.ClientInfo{
+					UserName: loginReqInfo.UserName,
+					ConnAddr: (*connInfo.Conn).RemoteAddr().String(),
+				}
+				queue.WaitNumMap.Store(clientInfo.UserName, queue.IncrLoginCurNum())
+				queue.EnqueueChan <- *clientInfo
 			}
-
-			queue.EnqueueChan <- *clientInfo
 
 		case define.CMD_QUERY_PLAYER_LOGIN_QUE_POS_REQ_NO:
 			queryReqInfo := proto.ParseToQueryPlayerLoginQuePosReq(frame)
@@ -158,7 +165,7 @@ func HandleReqInfoParse(frame []byte, connInfo *define.ConnInfo) error {
 
 }
 
-func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
+func CodecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
 	var err error
 	if codec == nil {
 		encoderConfig := gnet.EncoderConfig{
@@ -181,25 +188,4 @@ func codecServerRun(addr string, multicore, async bool, codec gnet.ICodec) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func main() {
-	var port int
-	var multicore bool
-
-	flag.IntVar(&port, "port", 9000, "server port")
-	flag.BoolVar(&multicore, "multicore", true, "multicore")
-	flag.Parse()
-
-	go func() {
-		http.ListenAndServe(":10000", nil)
-	}()
-
-	runtime.GOMAXPROCS(4)
-	//初始化工作
-	queue.Init()
-	queue.OperateWaitList()
-
-	addr := fmt.Sprintf("tcp://:%d", port)
-	codecServerRun(addr, multicore, true, nil)
 }

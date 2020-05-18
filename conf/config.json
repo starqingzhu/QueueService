@@ -1,0 +1,15 @@
+{
+  "tcpServer":
+  {
+    "tcpMaxConnCount": 1000,
+    "tcpPort": 9000
+  },
+  "stress": {
+    "switch": true,
+    "httpAddr": ":10000"
+  },
+  "server": {
+    "goMaxProcsNum": 4,
+    "multicore": true
+  }
+}
