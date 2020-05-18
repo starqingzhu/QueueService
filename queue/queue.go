@@ -111,7 +111,7 @@ func GetPlayerPosInfo(userName string) (res *define.PlayerQueInfo) {
 // 新用户登陆
 func Enqueue(clientInfo *define.ClientInfo) {
 	if _, ok := WaitNumMap.Load(clientInfo.UserName); ok {
-		WaitList.PushFront(*clientInfo)
+		WaitList.PushBack(*clientInfo)
 		IncrWaitingQuePlayersNum()
 
 		playerPosInfo := GetPlayerPosInfo(clientInfo.UserName)
