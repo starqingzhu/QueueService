@@ -110,7 +110,7 @@ func GetPlayerPosInfo(userName string) (res *define.PlayerQueInfo) {
 
 // 新用户登陆
 func Enqueue(clientInfo *define.ClientInfo) {
-	if _, ok := WaitNumMap.Load(clientInfo.UserName); !ok {
+	if _, ok := WaitNumMap.Load(clientInfo.UserName); ok {
 		WaitNumMap.Store(clientInfo.UserName, IncrLoginCurNum())
 		WaitList.PushFront(*clientInfo)
 		IncrWaitingQuePlayersNum()
@@ -259,12 +259,12 @@ func PrintWaitQueInfoChanged(playerQueInfo *define.PlayerQueInfo, reason uint16)
 true 表示在队列
 false 表示不在队列
 */
-//func CheckPlayerIsInWaitQue(userName string) (res bool) {
-//	if _, ok := WaitNumMap.Load(userName); ok {
-//		res = true
-//	}
-//	return
-//}
+func CheckPlayerIsInWaitQue(userName string) (res bool) {
+	if _, ok := WaitNumMap.Load(userName); ok {
+		res = true
+	}
+	return
+}
 
 func GetGamingPlayersNum() int32 {
 	n := atomic.LoadInt32(&OnGamingPlayers)
