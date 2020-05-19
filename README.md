@@ -55,7 +55,11 @@
     循环编号队列长度：LOGIN_QUEUE_MAX_LEN 
     用户进等待队列直接给编号：playerLoginNum 
     用户当前发放的编号：LoginWaitCurNum
-    用户的当前位置计算公式：relativeIndex = define.LOGIN_QUEUE_MAX_LEN - playerLoginNum + LoginWaitCurNum
+    用户的当前位置计算公式：
+    1.LoginWaitCurNum < playerLoginNum
+    relativeIndex = define.LOGIN_QUEUE_MAX_LEN - playerLoginNum + LoginWaitCurNum
+    2.LoginWaitCurNum >= playerLoginNum
+    relativeIndex = LoginWaitCurNum - playerLoginNum + 1
 	
 
 ## 三. 使用
