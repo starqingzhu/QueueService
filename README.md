@@ -10,6 +10,7 @@
 	
 	待开发功能
 	1.正在游戏的用户退出(未支持)
+	2.增加vip 大v用户专用登录队列
 
 ## 二. 实现
 	一个客户端，一个服务端，之间通过TCP长链接通信（开启keepalive 心跳）（测试用例中模拟多客户端压测）。
@@ -44,6 +45,16 @@
 	
 客户端和服务端通信的时序图	
 ![](doc/login.png)
+
+服务器逻辑图
+![](doc/server.png)
+
+    服务器逻辑图如上图。
+    队列编号问题阐述（注意对队列中编号控制 编号个数不能超过编号队列长度）
+    循环编号队列长度：LOGIN_QUEUE_MAX_LEN 
+    用户进等待队列直接给编号：playerLoginNum 
+    用户当前发放的编号：LoginWaitCurNum
+    用户的当前位置计算公式：relativeIndex = define.LOGIN_QUEUE_MAX_LEN - playerLoginNum + LoginWaitCurNum
 	
 
 ## 三. 使用
@@ -54,13 +65,31 @@
 	   control + c 退出
 
 ## 四. 测试
-	1. 通过修改QueueService/app/client/client_test.go 
-	var goNum int = 200 来控制并发测试
+    测试机器：虚拟机 centos7
+    内存2G  2核
+    tcp 连接并发支持 2w+（内存占用7%-8%样子，cpu 占用60%以下）
 	
-	2.tcp 连接并发 2w+
+	通过修改QueueService/app/client/client_test.go 
+	var goNum int = 10000 来控制并发测试
+	
+1w并发tcp连接下性能图
+cpu：
+![](doc/cpu.gif)
+ 
+    分析如下：
+    全局耗时 有些是 gnet网络框架里的耗时，这部分暂时不考虑优化，我们业务优化主要出现在
+    从等待队列获取任务处理时有sleep耗时50ms，再加上系统调用耗时在60ms左右。主要考虑此块
+    用协程池处理任务。
+    
+![](doc/cpu_max.png)
 
+   
+heap：
+![](doc/heap.gif)
+
+    内存消耗很少，可以忽略优化
 ## 五. 部署
-	时间仓促（平常上班忙，只有上个周末2020.5.16-2020.5.17 两天开发时间，2020.5.18 抽时间 写下readme） 服务器只是单点 
+	时间仓促（平常上班忙，只有上个周末2020.5.16-2020.5.17 两天开发时间，2020.5.18-2020.5.19 抽时间改下bug、写下readme） 服务器只是单点 
 	
 规划一个成熟项目部署
 ![](doc/online.png)
@@ -76,4 +105,8 @@
 	4.现在处理登录等待队列中的消息，目前起了单协程处理此处可以做成协程池
 	5.通信协议后期考虑用 Protocol Buffers
 	6.日志目前控制台输出，后期肯定要添加日志模块
+
+## 八. 需要注意的问题
+    1.  tcp长链接 支持 条数
+    ulimit -a 看下需要修改的限制
 	
