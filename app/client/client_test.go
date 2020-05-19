@@ -21,7 +21,7 @@ func run(userName string, wg *sync.WaitGroup) {
 		}
 	}()
 	defer wg.Done()
-	conn, err := net.Dial("tcp", "192.168.50.243:9000") //"127.0.0.1:9000") //
+	conn, err := net.Dial("tcp", "127.0.0.1:9000") //"192.168.50.243:9000") //
 	if err != nil {
 		panic(err)
 	}
