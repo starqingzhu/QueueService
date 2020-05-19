@@ -49,7 +49,7 @@
 ## 三. 使用
 	1. 服务器 QueueService/app/server/server.go 文件是服务端入口  go build server.go
 	2. 客户端 QueueService/app/client/client.go 文件是客户端入口  go build client.go
-	   测试用例 QueueService/app/client/client_test.go   执行命令 
+	   测试用例 QueueService/app/client/client_test.go   执行命令 go test -test.run TestClient
 	   注意（时间仓促 客户端连接服务器ip和端口 手动修改，服务器配置文件QueueService/conf/config.json）
 	   control + c 退出
 
