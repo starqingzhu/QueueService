@@ -54,6 +54,7 @@ func NewLoginReq(cmdNo int64, version string, userName string) *LoginReq {
 	return info
 }
 
+//func ParseToLoginReq(req []byte) interface{} {
 func ParseToLoginReq(req []byte) *LoginReq {
 	info := &LoginReq{}
 

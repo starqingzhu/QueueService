@@ -121,7 +121,7 @@ func run(userName string, wg *sync.WaitGroup) {
 }
 
 func TestClient(t *testing.T) {
-	var goNum int = 100
+	var goNum int = 10
 	var wg sync.WaitGroup
 	wg.Add(goNum)
 	for i := 1; i <= goNum; i++ {
